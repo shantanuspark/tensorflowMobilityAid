@@ -32,9 +32,13 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
+import com.proj.ai.mobilityaid.classifier.Classifier;
+import com.proj.ai.mobilityaid.classifier.TensorFlowClassifier;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,8 +50,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private TextureView textureView;
     private String mCameraId;
     private Size mPreviewSize;
+    private Classifier classifier;
 
     private File mImageFolder;
     private String mImageFileName;
@@ -90,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
                             mCaptureState = STATE_PREVIEW;
                             Integer afState = captureResult.get(CaptureResult.CONTROL_AF_STATE);
                             if(afState== CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED || afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED){
-                                Toast.makeText(getApplicationContext(),"Autofocus locked", Toast.LENGTH_SHORT).show();
+                                //Toast.makeText(getApplicationContext(),"Autofocus locked", Toast.LENGTH_SHORT).show();
                                 Log.d("MobilityAid", "AF locked "+mImageFileName);
                                 startStillCaptureRequest();
                             }
@@ -121,6 +124,31 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         createImageFolder();
         textureView = findViewById(R.id.textureView);
+        loadModel();
+    }
+
+    private void loadModel() {
+        //The Runnable interface is another way in which you can implement multi-threading other than extending the
+        // //Thread class due to the fact that Java allows you to extend only one class. Runnable is just an interface,
+        // //which provides the method run.
+        // //Threads are implementations and use Runnable to call the method run().
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    //add 2 classifiers to our classifier arraylist
+                    //the tensorflow classifier and the keras classifier
+                    classifier =
+                            TensorFlowClassifier.create(getAssets(), "TensorFlow",
+                                    "retrained_graph.pb", "output_labels.txt", 28,
+                                    "input", "DecodeJpeg", true);
+
+                } catch (final Exception e) {
+                    //if they aren't found, throw an error!
+                    throw new RuntimeException("Error initializing classifiers!", e);
+                }
+            }
+        }).start();
     }
 
     private class ImageSaver implements Runnable{
@@ -136,6 +164,20 @@ public class MainActivity extends AppCompatActivity {
             ByteBuffer byteBuffer = mImage.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[byteBuffer.remaining()];
             byteBuffer.get(bytes);
+
+            ByteArrayInputStream bas = new ByteArrayInputStream(bytes);
+            DataInputStream ds = new DataInputStream(bas);
+            float[] pixels = new float[bytes.length / 4];  // 4 bytes per float
+            for (int i = 0; i < pixels.length; i++)
+            {
+                try {
+                    pixels[i] = ds.readFloat();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Log.d("Classified as ",classifier.recognize(pixels).getLabel());
 
             FileOutputStream fileOutputStream = null;
             try {
@@ -164,26 +206,26 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void navigateMe(View v){
-        //lockFocus();
+        lockFocus();
 
-        Button btn = findViewById(R.id.captureFront);
-
-        Timer t = new Timer();
-
-        if(!isNavigateOn){
-            isNavigateOn = true;
-            t.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    lockFocus();
-                }
-            }, 0, 5000);
-            btn.setText("Stop Navigation");
-        } else {
-            isNavigateOn = false;
-            t.cancel();
-            btn.setText("Start Navigation");
-        }
+//        Button btn = findViewById(R.id.captureFront);
+//
+//        Timer t = new Timer();
+//
+//        if(!isNavigateOn){
+//            isNavigateOn = true;
+//            t.scheduleAtFixedRate(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    lockFocus();
+//                }
+//            }, 0, 5000);
+//            btn.setText("Stop Navigation");
+//        } else {
+//            isNavigateOn = false;
+//            t.cancel();
+//            btn.setText("Start Navigation");
+//        }
         //Toast.makeText(getApplicationContext(),"Navigation "+isNavigateOn, Toast.LENGTH_SHORT).show();
     }
 
@@ -222,6 +264,12 @@ public class MainActivity extends AppCompatActivity {
             cameraDevice = device;
             //Toast.makeText(getApplicationContext(),"Camera connection made", Toast.LENGTH_SHORT).show();
             startPreview();
+        }
+
+        @Override
+        public void onClosed(@NonNull CameraDevice camera) {
+            closeCamera();
+            super.onClosed(camera);
         }
 
         @Override
@@ -449,6 +497,7 @@ public class MainActivity extends AppCompatActivity {
         String prepend = "IMAGE_" + timestamp + "_";
         File imageFile = File.createTempFile(prepend, ".jpg", mImageFolder);
         mImageFileName = imageFile.getAbsolutePath();
+        Log.d("mobilityAid", "created file name "+mImageFileName);
         return imageFile;
     }
 
@@ -463,7 +512,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else {
                 if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    Toast.makeText(getApplicationContext(), "App needs to be able to save videos", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "App needs to be able to save the images", Toast.LENGTH_SHORT).show();
                 }
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT);
             }
@@ -480,13 +529,13 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(requestCode == REQUEST_CAMERA_PERMISSION) {
-            if(grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            if(grantResults.length>0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(getApplicationContext(),
                         "Application will not run without camera services", Toast.LENGTH_SHORT).show();
             }
         }
         if(requestCode == REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT) {
-            if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if(grantResults.length>0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this,
                         "Permission successfully granted!", Toast.LENGTH_SHORT).show();
             } else {
@@ -499,6 +548,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void lockFocus(){
         mCaptureState = STATE_WAIT_LOCK;
+        Log.d("mobilityAid","locking focus");
         mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
             mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), mPreviewCaptureCallBack,mBackgroundHandler);
