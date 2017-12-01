@@ -1,0 +1,5 @@
+bench
+bike rider
+dustbin
+newspaper vending machine
+walking towards you
