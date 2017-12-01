@@ -35,6 +35,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Trace;
+import android.speech.tts.TextToSpeech;
 import android.util.Size;
 import android.view.KeyEvent;
 import android.view.Surface;
@@ -45,6 +46,7 @@ import com.proj.ai.mobilityaid.env.ImageUtils;
 import com.proj.ai.mobilityaid.env.Logger;
 
 import java.nio.ByteBuffer;
+import java.util.Locale;
 
 public abstract class CameraActivity extends Activity
     implements OnImageAvailableListener, Camera.PreviewCallback {
@@ -71,6 +73,8 @@ public abstract class CameraActivity extends Activity
   private Runnable postInferenceCallback;
   private Runnable imageConverter;
 
+  TextToSpeech textToSpeech;
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     LOGGER.d("onCreate " + this);
@@ -79,11 +83,21 @@ public abstract class CameraActivity extends Activity
 
     setContentView(R.layout.activity_camera);
 
+    textToSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+      @Override
+      public void onInit(int status) {
+        if(status != TextToSpeech.ERROR) {
+          textToSpeech.setLanguage(Locale.US);
+        }
+      }
+    });
+
     if (hasPermission()) {
       setFragment();
     } else {
       requestPermission();
     }
+
   }
 
   private byte[] lastPreviewFrame;
@@ -234,6 +248,11 @@ public abstract class CameraActivity extends Activity
   @Override
   public synchronized void onPause() {
     LOGGER.d("onPause " + this);
+
+    if(textToSpeech !=null){
+      textToSpeech.stop();
+      textToSpeech.shutdown();
+    }
 
     if (!isFinishing()) {
       LOGGER.d("Requesting finish");

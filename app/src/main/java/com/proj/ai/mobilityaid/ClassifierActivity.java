@@ -24,6 +24,7 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
+import android.speech.tts.TextToSpeech;
 import android.util.Size;
 import android.util.TypedValue;
 
@@ -169,6 +170,12 @@ public class ClassifierActivity extends CameraActivity implements OnImageAvailab
             if (resultsView == null) {
               resultsView = (ResultsView) findViewById(R.id.results);
             }
+
+            if(results.get(0).getConfidence() > 0.90) {
+              textToSpeech.speak(results.get(0).getTitle(), TextToSpeech.QUEUE_FLUSH, null);
+              while (textToSpeech.isSpeaking() ) { };
+            }
+
             resultsView.setResults(results);
             requestRender();
             readyForNextImage();
