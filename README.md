@@ -11,7 +11,8 @@ Steps to Execute the project:
 7. Connect an android device in debugging mode to the computer and Run the project
 8. Select you device when asked for which device to run on
 
+
+Demo of the application is in demo video.mp4 file, can be viewed <a href = "https://drive.google.com/file/d/1Vk5wkUHiQKJ-D9GjSbJgncO0VR-eOMpj/view?usp=sharing">here</a>.
 <video controls>
   <source src="https://github.com/shantanuspark/tensorflowMobilityAid/blob/master/demo%20video.mp4" type="video/mp4">
-  Your browser does not support HTML5 video.
 </video>
