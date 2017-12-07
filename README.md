@@ -1,5 +1,5 @@
 # tensorflowMobilityAid
-Android application using tensor flow to detect obstacles and text to speech conversion to pronounce loudly the detected obstacles as an attempt to assist the visually impaired..
+Android application using tensorflow to detect obstacles and text to speech conversion to pronounce loudly the detected obstacles as an attempt to assist the visually impaired..
 
 Steps to Execute the project:
 1. Unzip the project zip file
