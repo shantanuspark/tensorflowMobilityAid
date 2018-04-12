@@ -12,7 +12,5 @@ Steps to Execute the project:
 8. Select you device when asked for which device to run on
 
 
-Demo of the application is in demo video.mp4 file, can be viewed <a href = "https://drive.google.com/file/d/1Vk5wkUHiQKJ-D9GjSbJgncO0VR-eOMpj/view?usp=sharing">here</a>.
-<video controls>
-  <source src="https://github.com/shantanuspark/tensorflowMobilityAid/blob/master/demo%20video.mp4" type="video/mp4">
-</video>
+<a href = "https://drive.google.com/file/d/1Vk5wkUHiQKJ-D9GjSbJgncO0VR-eOMpj/view?usp=sharing">Here</a> is the demo of the application.
+
